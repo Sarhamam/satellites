@@ -6,7 +6,8 @@
       "Bash(source .venv/bin/activate)",
       "Bash(python -c:*)",
       "Bash(pytest:*)",
-      "Bash(python -m pytest:*)"
+      "Bash(python -m pytest:*)",
+      "Bash(PYTHONPATH=/Users/shamam/git/satellites/.worktrees/webapp:$PYTHONPATH python:*)"
     ],
     "deny": [],
     "ask": []
