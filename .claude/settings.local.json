@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Skill(superpowers:brainstorming)",
-      "Skill(superpowers:using-git-worktrees)"
+      "Skill(superpowers:using-git-worktrees)",
+      "Bash(source .venv/bin/activate)",
+      "Bash(python -c:*)",
+      "Bash(pytest:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(PYTHONPATH=/Users/shamam/git/satellites/.worktrees/webapp:$PYTHONPATH python:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Data Explorer{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <h1 class="text-2xl font-bold mb-6">Data Explorer</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <!-- Sidebar with resources -->
+        <div class="bg-white shadow rounded-lg p-4">
+            <h2 class="text-lg font-semibold mb-4">Resources</h2>
+            {% if resources %}
+            <ul class="space-y-2">
+                {% for resource in resources %}
+                <li>
+                    <a href="/data/{{ resource }}"
+                       class="block px-3 py-2 rounded hover:bg-gray-100 {% if resource == selected_resource %}bg-blue-50 text-blue-600{% endif %}">
+                        {{ resource }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-sm text-gray-500">No resources found. <a href="/schemas/new" class="text-blue-600 hover:underline">Create a schema</a> first.</p>
+            {% endif %}
+        </div>
+
+        <!-- Main content area -->
+        <div class="md:col-span-3 bg-white shadow rounded-lg p-6">
+            {% if selected_resource %}
+            <h2 class="text-xl font-semibold mb-4">{{ selected_resource }}</h2>
+            <p class="text-gray-600 mb-4">Select a resource from the sidebar to view data.</p>
+            {% else %}
+            <div class="text-center py-12 text-gray-500">
+                <p class="text-lg mb-2">Select a resource to explore</p>
+                <p class="text-sm">Choose from the sidebar to view and manage data</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

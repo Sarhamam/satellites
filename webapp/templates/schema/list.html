@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Schemas{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Schemas</h1>
+        <a href="/schemas/new" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+            New Schema
+        </a>
+    </div>
+
+    {% if schemas %}
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Resource</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Version</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for schema in schemas %}
+                <tr>
+                    <td class="px-6 py-4">{{ schema.resource }}</td>
+                    <td class="px-6 py-4">{{ schema.version }}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 rounded text-xs {% if schema.status == 'published' %}bg-green-100 text-green-800{% elif schema.status == 'draft' %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ schema.status }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ schema.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="/schemas/{{ schema.id }}" class="text-indigo-600 hover:text-indigo-900">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="bg-white shadow rounded-lg p-6 text-center text-gray-500">
+        No schemas found. <a href="/schemas/new" class="text-blue-600 hover:underline">Create one</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
