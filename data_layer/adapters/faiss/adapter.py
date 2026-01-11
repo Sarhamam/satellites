@@ -4,6 +4,7 @@ import asyncio
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from threading import Lock
 from typing import Any, Mapping, Optional, Sequence
 
 import faiss
@@ -20,7 +21,10 @@ class VectorMatch:
 
 
 class VectorIndex:
-    """Async wrapper for FAISS with metadata storage."""
+    """Async wrapper for FAISS with metadata storage.
+
+    All operations are thread-safe and can be called concurrently.
+    """
 
     def __init__(self, index_path: Path, dimension: int) -> None:
         self._index_path = index_path
@@ -29,6 +33,7 @@ class VectorIndex:
         self._id_to_idx: dict[str, dict[str, int]] = {}  # namespace -> {id -> idx}
         self._idx_to_id: dict[str, dict[int, str]] = {}  # namespace -> {idx -> id}
         self._metadata: dict[str, dict[str, Mapping[str, Any]]] = {}  # namespace -> {id -> meta}
+        self._lock = Lock()  # Protects all index and metadata mutations
         self._index_path.mkdir(parents=True, exist_ok=True)
 
     def _get_or_create_namespace(self, namespace: str) -> faiss.IndexFlatIP:
@@ -46,29 +51,33 @@ class VectorIndex:
         vector: Sequence[float],
         metadata: Optional[Mapping[str, Any]] = None,
     ) -> None:
-        """Insert or update a vector with optional metadata."""
+        """Insert or update a vector with optional metadata.
+
+        Thread-safe: can be called concurrently from multiple tasks.
+        """
 
         def _upsert() -> None:
-            # Delete existing if present
-            if namespace in self._id_to_idx and vector_id in self._id_to_idx[namespace]:
-                self._delete_sync(namespace, vector_id)
+            with self._lock:
+                # Delete existing if present
+                if namespace in self._id_to_idx and vector_id in self._id_to_idx[namespace]:
+                    self._delete_sync_unsafe(namespace, vector_id)
 
-            index = self._get_or_create_namespace(namespace)
-            vec = np.array([vector], dtype=np.float32)
-            faiss.normalize_L2(vec)  # Normalize for cosine similarity
+                index = self._get_or_create_namespace(namespace)
+                vec = np.array([vector], dtype=np.float32)
+                faiss.normalize_L2(vec)  # Normalize for cosine similarity
 
-            idx = index.ntotal
-            index.add(vec)
+                idx = index.ntotal
+                index.add(vec)
 
-            self._id_to_idx[namespace][vector_id] = idx
-            self._idx_to_id[namespace][idx] = vector_id
-            if metadata:
-                self._metadata[namespace][vector_id] = metadata
+                self._id_to_idx[namespace][vector_id] = idx
+                self._idx_to_id[namespace][idx] = vector_id
+                if metadata:
+                    self._metadata[namespace][vector_id] = metadata
 
         await asyncio.to_thread(_upsert)
 
-    def _delete_sync(self, namespace: str, vector_id: str) -> bool:
-        """Sync delete - rebuilds index without the deleted vector."""
+    def _delete_sync_unsafe(self, namespace: str, vector_id: str) -> bool:
+        """Sync delete - MUST be called with lock held."""
         if namespace not in self._id_to_idx:
             return False
         if vector_id not in self._id_to_idx[namespace]:
@@ -101,8 +110,16 @@ class VectorIndex:
         return True
 
     async def delete(self, namespace: str, vector_id: str) -> bool:
-        """Delete a vector by ID."""
-        return await asyncio.to_thread(self._delete_sync, namespace, vector_id)
+        """Delete a vector by ID.
+
+        Thread-safe: can be called concurrently from multiple tasks.
+        """
+
+        def _delete() -> bool:
+            with self._lock:
+                return self._delete_sync_unsafe(namespace, vector_id)
+
+        return await asyncio.to_thread(_delete)
 
     async def query(
         self,
@@ -110,80 +127,92 @@ class VectorIndex:
         vector: Sequence[float],
         top_k: int = 10,
     ) -> list[VectorMatch]:
-        """Find nearest neighbors."""
+        """Find nearest neighbors.
+
+        Thread-safe: can be called concurrently from multiple tasks.
+        """
 
         def _query() -> list[VectorMatch]:
-            if namespace not in self._namespaces:
-                return []
+            with self._lock:
+                if namespace not in self._namespaces:
+                    return []
 
-            index = self._namespaces[namespace]
-            if index.ntotal == 0:
-                return []
+                index = self._namespaces[namespace]
+                if index.ntotal == 0:
+                    return []
 
-            vec = np.array([vector], dtype=np.float32)
-            faiss.normalize_L2(vec)
+                vec = np.array([vector], dtype=np.float32)
+                faiss.normalize_L2(vec)
 
-            k = min(top_k, index.ntotal)
-            scores, indices = index.search(vec, k)
+                k = min(top_k, index.ntotal)
+                scores, indices = index.search(vec, k)
 
-            results = []
-            for score, idx in zip(scores[0], indices[0]):
-                if idx == -1:
-                    continue
-                vid = self._idx_to_id[namespace].get(int(idx))
-                if vid:
-                    meta = self._metadata[namespace].get(vid)
-                    results.append(VectorMatch(id=vid, score=float(score), metadata=meta))
+                results = []
+                for score, idx in zip(scores[0], indices[0]):
+                    if idx == -1:
+                        continue
+                    vid = self._idx_to_id[namespace].get(int(idx))
+                    if vid:
+                        meta = self._metadata[namespace].get(vid)
+                        results.append(VectorMatch(id=vid, score=float(score), metadata=meta))
 
-            return results
+                return results
 
         return await asyncio.to_thread(_query)
 
     async def save(self) -> None:
-        """Persist all indexes and metadata to disk."""
+        """Persist all indexes and metadata to disk.
+
+        Thread-safe: can be called concurrently from multiple tasks.
+        """
 
         def _save() -> None:
-            for namespace, index in self._namespaces.items():
-                ns_path = self._index_path / namespace
-                ns_path.mkdir(exist_ok=True)
+            with self._lock:
+                for namespace, index in self._namespaces.items():
+                    ns_path = self._index_path / namespace
+                    ns_path.mkdir(exist_ok=True)
 
-                faiss.write_index(index, str(ns_path / "index.faiss"))
+                    faiss.write_index(index, str(ns_path / "index.faiss"))
 
-                state = {
-                    "id_to_idx": self._id_to_idx[namespace],
-                    "idx_to_id": {str(k): v for k, v in self._idx_to_id[namespace].items()},
-                    "metadata": dict(self._metadata[namespace]),
-                }
-                with open(ns_path / "state.json", "w") as f:
-                    json.dump(state, f)
+                    state = {
+                        "id_to_idx": self._id_to_idx[namespace],
+                        "idx_to_id": {str(k): v for k, v in self._idx_to_id[namespace].items()},
+                        "metadata": dict(self._metadata[namespace]),
+                    }
+                    with open(ns_path / "state.json", "w") as f:
+                        json.dump(state, f)
 
         await asyncio.to_thread(_save)
 
     async def load(self) -> None:
-        """Load all indexes and metadata from disk."""
+        """Load all indexes and metadata from disk.
+
+        Thread-safe: can be called concurrently from multiple tasks.
+        """
 
         def _load() -> None:
-            if not self._index_path.exists():
-                return
+            with self._lock:
+                if not self._index_path.exists():
+                    return
 
-            for ns_path in self._index_path.iterdir():
-                if not ns_path.is_dir():
-                    continue
+                for ns_path in self._index_path.iterdir():
+                    if not ns_path.is_dir():
+                        continue
 
-                index_file = ns_path / "index.faiss"
-                state_file = ns_path / "state.json"
+                    index_file = ns_path / "index.faiss"
+                    state_file = ns_path / "state.json"
 
-                if not index_file.exists() or not state_file.exists():
-                    continue
+                    if not index_file.exists() or not state_file.exists():
+                        continue
 
-                namespace = ns_path.name
-                self._namespaces[namespace] = faiss.read_index(str(index_file))
+                    namespace = ns_path.name
+                    self._namespaces[namespace] = faiss.read_index(str(index_file))
 
-                with open(state_file) as f:
-                    state = json.load(f)
+                    with open(state_file) as f:
+                        state = json.load(f)
 
-                self._id_to_idx[namespace] = state["id_to_idx"]
-                self._idx_to_id[namespace] = {int(k): v for k, v in state["idx_to_id"].items()}
-                self._metadata[namespace] = state.get("metadata", {})
+                    self._id_to_idx[namespace] = state["id_to_idx"]
+                    self._idx_to_id[namespace] = {int(k): v for k, v in state["idx_to_id"].items()}
+                    self._metadata[namespace] = state.get("metadata", {})
 
         await asyncio.to_thread(_load)

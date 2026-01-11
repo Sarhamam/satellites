@@ -103,6 +103,7 @@ FAISS requires an adapter because:
 2. **Metadata storage**: FAISS stores only vectors, adapter adds metadata sidecar
 3. **Namespaces**: Support for multiple isolated vector collections
 4. **Persistence**: Save/load indexes with metadata to/from disk
+5. **Thread safety**: All operations are protected with locks for concurrent access
 
 ### Event System
 
