@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(superpowers:brainstorming)",
+      "Skill(superpowers:using-git-worktrees)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
