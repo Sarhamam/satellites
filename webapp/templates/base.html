@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ config.title }}{% endblock %}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-white shadow mb-6">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex space-x-8">
+                    <a href="/" class="text-xl font-bold text-gray-900">{{ config.title }}</a>
+                    <a href="/schemas" class="text-gray-600 hover:text-gray-900">Schemas</a>
+                    <a href="/data" class="text-gray-600 hover:text-gray-900">Data</a>
+                    <a href="/query" class="text-gray-600 hover:text-gray-900">Query</a>
+                </div>
+                <div class="text-sm text-gray-500">
+                    Tenant: <span id="current-tenant">{{ tenant or 'None' }}</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <main class="max-w-7xl mx-auto px-4">
+        {% block content %}{% endblock %}
+    </main>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
