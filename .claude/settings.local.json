@@ -4,7 +4,9 @@
       "Skill(superpowers:brainstorming)",
       "Skill(superpowers:using-git-worktrees)",
       "Bash(source .venv/bin/activate)",
-      "Bash(python -c:*)"
+      "Bash(python -c:*)",
+      "Bash(pytest:*)",
+      "Bash(python -m pytest:*)"
     ],
     "deny": [],
     "ask": []
