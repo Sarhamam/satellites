@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(superpowers:executing-plans)",
+      "Bash(python3 -m pip install:*)",
+      "Bash(python3.11:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
