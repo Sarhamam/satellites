@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Migration Preview{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="mb-6">
+        <a href="/migrations" class="text-blue-600 hover:underline">← Back to migrations</a>
+    </div>
+
+    <h1 class="text-2xl font-bold mb-6">Migration Preview</h1>
+
+    <div class="bg-white shadow rounded-lg p-6 mb-6">
+        <dl class="grid grid-cols-2 gap-4">
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Resource</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ migration.resource }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Backend</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ migration.backend }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Status</dt>
+                <dd class="mt-1">
+                    <span class="px-2 py-1 rounded text-xs
+                        {% if migration.status == 'applied' %}bg-green-100 text-green-800
+                        {% elif migration.status == 'pending' %}bg-yellow-100 text-yellow-800
+                        {% elif migration.status == 'failed' %}bg-red-100 text-red-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ migration.status }}
+                    </span>
+                </dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Created</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ migration.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
+            </div>
+        </dl>
+    </div>
+
+    {% if migration.generated_sql %}
+    <div class="bg-white shadow rounded-lg p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4">Generated SQL</h2>
+        <pre class="bg-gray-50 p-4 rounded overflow-x-auto"><code>{{ migration.generated_sql }}</code></pre>
+    </div>
+    {% endif %}
+
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold mb-4">Operations ({{ migration.operations|length }})</h2>
+        {% if migration.operations %}
+        <ul class="space-y-2">
+            {% for op in migration.operations %}
+            <li class="border-l-4 border-blue-500 pl-4 py-2">
+                <div class="font-medium">{{ op.type }}</div>
+                <div class="text-sm text-gray-600">Table: {{ op.table }}</div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-gray-500">No operations</p>
+        {% endif %}
+    </div>
+
+    {% if migration.status == 'pending' %}
+    <div class="mt-6 flex space-x-3">
+        <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+            Apply Migration
+        </button>
+        <button class="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
+            Cancel
+        </button>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
