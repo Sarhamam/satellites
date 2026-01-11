@@ -108,16 +108,19 @@ async def test_elasticsearch_operations(data_layer: DataLayer):
 
 async def test_vector_operations(data_layer: DataLayer):
     """Test FAISS vector operations."""
+    # Use dimension=1536 to match default FAISS config
+    test_vector = [1.0] + [0.0] * 1535
+
     await data_layer.vectors.upsert(
         namespace="embeddings",
         vector_id="vec-1",
-        vector=[1.0, 0.0, 0.0, 0.0],
+        vector=test_vector,
         metadata={"source": "test"},
     )
 
     results = await data_layer.vectors.query(
         namespace="embeddings",
-        vector=[1.0, 0.0, 0.0, 0.0],
+        vector=test_vector,
         top_k=1,
     )
 

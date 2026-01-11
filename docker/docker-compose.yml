@@ -30,7 +30,7 @@ services:
       retries: 3
 
   elasticsearch:
-    image: elasticsearch:8.11.0
+    image: elasticsearch:9.0.0
     ports:
       - "9200:9200"
     environment:
