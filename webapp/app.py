@@ -47,6 +47,22 @@ def create_app(
     app.state.templates = templates
     app.state.webapp_config = webapp_config
 
+    # Root route
+    from fastapi import Request
+    from fastapi.responses import HTMLResponse
+
+    @app.get("/", response_class=HTMLResponse)
+    async def home(request: Request):
+        """Home page."""
+        return templates.TemplateResponse(
+            "index.html",
+            {
+                "request": request,
+                "config": webapp_config,
+                "tenant": None,
+            },
+        )
+
     # Register routes
     from webapp.schema.routes import router as schema_router
     from webapp.migration.routes import router as migration_router
