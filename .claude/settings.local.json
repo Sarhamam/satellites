@@ -3,7 +3,11 @@
     "allow": [
       "Skill(superpowers:executing-plans)",
       "Bash(python3 -m pip install:*)",
-      "Bash(python3.11:*)"
+      "Bash(python3.11:*)",
+      "Bash(mkdir:*)",
+      "Bash(touch:*)",
+      "Bash(source:*)",
+      "Bash(pytest:*)"
     ],
     "deny": [],
     "ask": []
