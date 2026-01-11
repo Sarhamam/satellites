@@ -47,8 +47,10 @@ def create_app(
     app.state.templates = templates
     app.state.webapp_config = webapp_config
 
-    # Register routes (will add later)
-    # app.include_router(schema_router, prefix="/schemas", tags=["schemas"])
+    # Register routes
+    from webapp.schema.routes import router as schema_router
+
+    app.include_router(schema_router)
     # app.include_router(data_router, prefix="/data", tags=["data"])
     # app.include_router(query_router, prefix="/query", tags=["query"])
 
