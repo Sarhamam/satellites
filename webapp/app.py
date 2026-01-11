@@ -51,10 +51,11 @@ def create_app(
     from webapp.schema.routes import router as schema_router
     from webapp.migration.routes import router as migration_router
     from webapp.data.routes import router as data_router
+    from webapp.query.routes import router as query_router
 
     app.include_router(schema_router)
     app.include_router(migration_router)
     app.include_router(data_router)
-    # app.include_router(query_router, prefix="/query", tags=["query"])
+    app.include_router(query_router)
 
     return app
